@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3306 客户端</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden; /* 禁止滚动 */
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            overflow: hidden;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f9f9f9;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background: #fafafa;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            resize: none;
+            font-size: 14px;
+            color: #333;
+            overflow-y: auto;
+            outline: none;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+            margin-right: 5px;
+            flex: 1;
+            min-width: 80px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .action-buttons,
+        .private-message {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .private-message input {
+            flex: 1;
+            margin-right: 5px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* 加载动画样式 */
+        #loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.8);
+            z-index: 9999; /* 确保在所有元素之上 */
+        }
+
+        .loader {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+
+        .loader div {
+            position: absolute;
+            border: 8px solid transparent;
+            border-radius: 50%;
+            animation: spin 1.2s linear infinite;
+        }
+
+        .loader div:nth-child(1) {
+            border-top-color: #3498db;
+            width: 80px;
+            height: 80px;
+            animation-delay: -0.4s;
+        }
+
+        .loader div:nth-child(2) {
+            border-top-color: #e74c3c;
+            width: 60px;
+            height: 60px;
+            top: 10px;
+            left: 10px;
+            animation-delay: -0.2s;
+        }
+
+        .loader div:nth-child(3) {
+            border-top-color: #f1c40f;
+            width: 40px;
+            height: 40px;
+            top: 20px;
+            left: 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            textarea {
+                height: 200px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            button {
+                margin: 5px 0;
+                width: 100%;
+            }
+
+            .private-message input {
+                flex: 1;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="loader">
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+    </div>
+    <div class="container" style="display: none;">
+        <section class="section language-selection" id="language-selection">
+            <h2 id="lang-select-title">选择语言</h2>
+            <select id="language-select">
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+            </select>
+            <div class="action-buttons">
+                <button id="connect">连接</button>
+                <button id="info">程序信息</button>
+                <button id="export" class="export-button">导出聊天记录</button>
+            </div>
+        </section>
+        <section class="section connection" id="connection-section">
+            <h2 id="connection-title">连接</h2>
+            <label for="nickname" id="nickname-label">昵称:</label>
+            <input type="text" id="nickname" placeholder="请输入昵称">
+            <label for="server" id="server-label">服务器地址:</label>
+            <input type="text" id="server" value="ws://127.0.0.1">
+            <label for="port" id="port-label">端口:</label>
+            <input type="text" id="port" value="8765">
+        </section>
+        <section class="section chat-area hidden" id="chat-area">
+            <h2 id="chat-title">聊天区域</h2>
+            <textarea id="messages-container" readonly></textarea>
+            <input type="text" id="message" placeholder="输入消息..." onkeypress="checkEnter(event)">
+            <div class="private-message">
+                <input type="text" id="private-nickname" placeholder="私信昵称">
+                <input type="text" id="private-message" placeholder="私信内容">
+                <button id="send-private">发送私信</button>
+            </div>
+            <div class="action-buttons">
+                <button id="send">发送</button>
+                <button id="reply">回复最后一条消息</button>
+                <button id="recall">撤回最后一条消息</button>
+                <button id="disconnect" class="hidden">断开连接</button>
+            </div>
+        </section>
+    </div>
+    <script>
+        // 加载动画后进入程序
+        window.onload = function () {
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none'; // 隐藏加载动画
+                document.querySelector('.container').style.display = 'flex'; // 显示主程序界面
+            }, 3000); // 3秒后
+        };
+
+        const languagePack = {
+            zh: {
+                connectionTitle: "连接",
+                nicknameLabel: "昵称:",
+                serverLabel: "服务器地址:",
+                portLabel: "端口:",
+                connectButton: "连接",
+                infoButton: "程序信息",
+                exportButton: "导出聊天记录",
+                chatTitle: "聊天区域",
+                messagePlaceholder: "输入消息...",
+                privateNicknamePlaceholder: "私信昵称",
+                privateMessagePlaceholder: "私信内容",
+                sendButton: "发送",
+                replyButton: "回复最后一条消息",
+                recallButton: "撤回最后一条消息",
+                disconnectButton: "断开连接",
+                langSelectTitle: "选择语言",
+                alertConnectionError: "请输入昵称！",
+                alertConnectionClosed: "连接已关闭",
+                alertConnectionErrorMessage: "连接错误",
+                programInfo: "程序名称: 聊天客户端\n版本: Alpha_0.0.2_V29\n作者: (GitHub) Buelie\n描述: 一个简单的聊天客户端应用程序。"
+            },
+            en: {
+                connectionTitle: "Connection",
+                nicknameLabel: "Nickname:",
+                serverLabel: "Server Address:",
+                portLabel: "Port:",
+                connectButton: "Connect",
+                infoButton: "Program Info",
+                exportButton: "Export Chat History",
+                chatTitle: "Chat Area",
+                messagePlaceholder: "Type your message...",
+                privateNicknamePlaceholder: "Private Nickname",
+                privateMessagePlaceholder: "Private Message",
+                sendButton: "Send",
+                replyButton: "Reply to Last Message",
+                recallButton: "Recall Last Message",
+                disconnectButton: "Disconnect",
+                langSelectTitle: "Select Language",
+                alertConnectionError: "Please enter a nickname!",
+                alertConnectionClosed: "Connection closed",
+                alertConnectionErrorMessage: "Connection error",
+                programInfo: "Program Name: Chat Client\nVersion: Alpha_0.0.2_V29\nAuthor: (GitHub) Buelie\nDescription: A simple chat client application."
+            }
+        };
+
+        function changeLanguage(lang) {
+            const texts = languagePack[lang];
+            document.getElementById('connection-title').innerText = texts.connectionTitle;
+            document.getElementById('nickname-label').innerText = texts.nicknameLabel;
+            document.getElementById('server-label').innerText = texts.serverLabel;
+            document.getElementById('port-label').innerText = texts.portLabel;
+            document.getElementById('connect').innerText = texts.connectButton;
+            document.getElementById('info').innerText = texts.infoButton;
+            document.getElementById('export').innerText = texts.exportButton;
+            document.getElementById('chat-title').innerText = texts.chatTitle;
+            document.getElementById('message').placeholder = texts.messagePlaceholder;
+            document.getElementById('private-nickname').placeholder = texts.privateNicknamePlaceholder;
+            document.getElementById('private-message').placeholder = texts.privateMessagePlaceholder;
+            document.getElementById('send').innerText = texts.sendButton;
+            document.getElementById('reply').innerText = texts.replyButton;
+            document.getElementById('recall').innerText = texts.recallButton;
+            document.getElementById('disconnect').innerText = texts.disconnectButton;
+            document.getElementById('lang-select-title').innerText = texts.langSelectTitle;
+        }
+
+        document.getElementById('language-select').addEventListener('change', function () {
+            changeLanguage(this.value);
+        });
+
+        let socket;
+        const messagesContainer = document.getElementById('messages-container');
+        const connectButton = document.getElementById('connect');
+        const sendButton = document.getElementById('send');
+        const exportButton = document.getElementById('export');
+        const infoButton = document.getElementById('info');
+        const disconnectButton = document.getElementById('disconnect');
+        const nicknameInput = document.getElementById('nickname');
+        const serverInput = document.getElementById('server');
+        const portInput = document.getElementById('port');
+        const messageInput = document.getElementById('message');
+        const privateNicknameInput = document.getElementById('private-nickname');
+        const privateMessageInput = document.getElementById('private-message');
+
+        const messages = [];
+        let lastSentMessage = '';
+
+        connectButton.addEventListener('click', () => {
+            const nickname = nicknameInput.value.trim();
+            const serverAddress = serverInput.value.trim();
+            const port = portInput.value.trim();
+
+            if (!nickname) {
+                alert(languagePack[document.getElementById('language-select').value].alertConnectionError);
+                return;
+            }
+
+            socket = new WebSocket(`${serverAddress}:${port}`);
+
+            socket.addEventListener('open', () => {
+                addMessageToContainer(`已连接到服务器！`, 'message-server');
+                document.getElementById('language-selection').classList.add('hidden');
+                document.getElementById('connection-section').classList.add('hidden');
+                document.getElementById('chat-area').classList.remove('hidden');
+                disconnectButton.classList.remove('hidden');
+            });
+
+            socket.addEventListener('message', (event) => {
+                addMessageToContainer(event.data, 'message-server');
+            });
+
+            socket.addEventListener('close', () => {
+                addMessageToContainer(languagePack[document.getElementById('language-select').value].alertConnectionClosed, 'message-server');
+                resetChat();
+            });
+
+            socket.addEventListener('error', (error) => {
+                console.error('WebSocket 发生错误:', error);
+                addMessageToContainer(languagePack[document.getElementById('language-select').value].alertConnectionErrorMessage, 'message-server');
+            });
+        });
+
+        disconnectButton.addEventListener('click', () => {
+            if (socket) {
+                socket.close();
+            }
+        });
+
+        sendButton.addEventListener('click', () => {
+            sendMessage();
+        });
+
+        document.getElementById('send-private').addEventListener('click', () => {
+            sendPrivateMessage();
+        });
+
+        document.getElementById('reply').addEventListener('click', () => {
+            replyToLastMessage();
+        });
+
+        document.getElementById('recall').addEventListener('click', () => {
+            recallLastMessage();
+        });
+
+        infoButton.addEventListener('click', () => {
+            alert(languagePack[document.getElementById('language-select').value].programInfo);
+        });
+
+        function resetChat() {
+            document.getElementById('language-selection').classList.remove('hidden');
+            document.getElementById('connection-section').classList.remove('hidden');
+            document.getElementById('chat-area').classList.add('hidden');
+            disconnectButton.classList.add('hidden');
+        }
+
+        function checkEnter(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            const nickname = nicknameInput.value.trim();
+
+            if (message && socket && socket.readyState === WebSocket.OPEN) {
+                const fullMessage = `${nickname}: ${message}`;
+                socket.send(fullMessage);
+                addMessageToContainer(`你: ${message}`, 'message-you');
+                messages.push(fullMessage);
+                lastSentMessage = fullMessage;
+                messageInput.value = '';
+            }
+        }
+
+        function sendPrivateMessage() {
+            const recipient = privateNicknameInput.value.trim();
+            const message = privateMessageInput.value.trim();
+            const nickname = nicknameInput.value.trim();
+
+            if (recipient && message && socket && socket.readyState === WebSocket.OPEN) {
+                const privateMessage = `@${recipient}: ${message}`;
+                socket.send(privateMessage);
+                addMessageToContainer(`私信给 ${recipient}: ${message}`, 'message-you');
+                privateNicknameInput.value = '';
+                privateMessageInput.value = '';
+            }
+        }
+
+        function replyToLastMessage() {
+            if (lastSentMessage) {
+                messageInput.value = `回复: ${lastSentMessage}`;
+                messageInput.focus();
+            }
+        }
+
+        function recallLastMessage() {
+            if (lastSentMessage) {
+                const recalledMessage = `${nicknameInput.value.trim()} 撤回了一条消息。`;
+                socket.send(recalledMessage);
+                addMessageToContainer(recalledMessage, 'message-server');
+                lastSentMessage = '';
+            }
+        }
+
+        function addMessageToContainer(message, className) {
+            messagesContainer.value += message + '\n';
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        exportButton.addEventListener('click', () => {
+            const blob = new Blob([messages.join('\n')], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'chat_history.txt';
+            link.click();
+        });
+
+        // 初始化为中文
+        changeLanguage('zh');
+    </script>
+</body>
+</html>
