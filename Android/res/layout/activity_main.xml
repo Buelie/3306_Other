@@ -14,15 +14,13 @@
         android:id="@+id/addressEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="服务器地址"
-        android:text="127.0.0.1" />
+        android:hint="服务器地址" />
 
     <EditText
         android:id="@+id/portEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="端口"
-        android:text="12345" />
+        android:hint="端口" />
 
     <Button
         android:id="@+id/connectButton"
@@ -32,21 +30,18 @@
 
     <TextView
         android:id="@+id/statusTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="状态" />
+
+    <TextView
+        android:id="@+id/chatTextView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@android:color/holo_red_dark" />
-
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-
-        <TextView
-            android:id="@+id/chatTextView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="8dp" />
-    </ScrollView>
+        android:background="#EEE"
+        android:padding="8dp"
+        android:scrollbars="vertical"
+        android:maxLines="10" />
 
     <EditText
         android:id="@+id/messageEditText"
@@ -60,6 +55,25 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="发送" />
+
+    <EditText
+        android:id="@+id/privateNicknameEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="私信昵称" />
+
+    <EditText
+        android:id="@+id/privateMessageEditText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:hint="私信内容" />
+
+    <Button
+        android:id="@+id/sendPrivateButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="发送私信" />
 
     <Button
         android:id="@+id/exportButton"
